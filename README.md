@@ -1,28 +1,26 @@
-# Ödev 1
-Robotlar dersi için  hazırladığım ilk ödev. Bu ödev için birden fazla geliştirme yaptım ikisini de test edebilirsiniz. İlk yaptığım geliştirmeden sonra aklıma bazı yenilikler geldiğinden ikinci geliştirmeyi de daha sonra gerçekleştirdim.
+# Turtle Bot Micromouse Maze Solver with ROS and C++
 
+## Installation and Initialization of the Environment
+In this assignment I used micromouse maze 4 and turtlebot3 waffle. We will initialize and use them.
 
-## Kurulum ve Ortamın Başlatılması
-Bu ödevde micromouse maze 4 ve turtlebot3 waffle kullandım. Bunların başlatılmasını ve kullanılmasını sağlayacağız.
-
-Ödevde aşağıda bulunan iki paket ve benim geliştirdiğim solve_maze paketi bulunuyor.
+The assignment includes the following two packages and the solve_maze package developed by me.
 -https://gitlab.com/blm6191_2425b_tai/blm6191/turtlebot3_simulations 
 -https://gitlab.com/blm6191_2425b_tai/blm6191/micromouse_maze
 
-### Kurulum
+#### Installation
 
 ```
 git clone https://gitlab.com/blm6191_2425b_tai/members/24501118/hw1.git
 ```
 
-### Ortamın Başlatılması
-Ana klasöre geliyoruz.
+### Initializing the Environment
+We go to the main folder.
 
 ```
-cd ./hw1/robotlar_ws
+cd ./hw1/robots_ws
 ```
 
-Her ihtimale karşı kodların build'lenmesi için kodumuzu kullanıyoruz. Ve model olarak da waffle seçiyoruz.
+We use our code to build the code just in case. And we choose waffle as the model.
 
 ```
 export TURTLEBOT3_MODEL=waffle
@@ -31,74 +29,76 @@ catkin_make
 source devel/setup.bash
 ```
 
-Ardından ortamımızı başlatıyoruz.
+Then we start our environment.
 
 ```
 roslaunch micromouse_maze micromouse_maze4.launch
 ```
 
-Bu işlemi yaptığımızda gazebo'nun ve Rviz'in açılmasını beklemekteyiz. (Bu işlemler root ile yapılırsa Gazebo GUI root ile çok iyi çalışmadığından problem yaşanabilir normal bir user ile yapılması daha sağlıklı olur)
+When we do this, we are waiting for gazebo and Rviz to open. (If these operations are done with root, there may be problems because Gazebo GUI does not work very well with root, it is healthier to do it with a normal user)
 
-## Çözümün Gözlemlenmesi ve Çıktılar
+## Observing the Solution and Outputs
 
-### Çözümün Gözlemlenmesi
+### Observing the Solution
 
-Çözümünü yaptığım tüm kodlar aşağıdaki lokasyonda bulunuyor bu lokasyonda 3 adet çözüm bulacaksınız. Birincisi ilk iterasyonum olan my_solver (duvara oldukça yakın giderek labirenti tamamlıyor)
+All the codes I have solved are located in the following location, in this location you will find 3 solutions. The first one is my first iteration, my_solver (completes the maze by going quite close to the wall)
 
 ```
-hw1/robotlar_ws/src/solve_maze
+hw1/robots_ws/src/solve_maze
 ```
 
-İkincisi my_solver_salinimli olan ilk iterasyonu geliştirdiğim versiyon duvara daha uzaktan giderek labirenti tamamlıyor. (duvarı salınım "S" şekli yaparak takip ediyor.)
+The second is my_solver_oscillating, the version I developed in the first iteration, which completes the maze by going further away from the wall (it follows the wall by making an oscillating "S" shape).
 
-Ve son olarak my_mapper robotumuzun gezdiği alanın haritalamasını yapan kodumuz. Bu üç kodu da aşağıdaki yöntemlerle çalıştırıp nasıl çalıştığını gözlemleyebilirsiniz.
+And finally my_mapper is the code that maps the area our robot travels. You can run all three codes in the following ways and see how they work.
 
-İlk çözüm
+First solution
 ```
 rosrun solve_maze my_solver
 ```
 
-İkinci çözüm
+Second solution
 ```
 rosrun solve_maze my_solver_salinimli
 ```
 
-Map oluşturucu
+Map builder
 ```
 rosrun solve_maze my_mapper
 ```
 
-### Çıktılar
-Labirent çalıştırıldıktan sonra ve
+#### Outputs
+After the maze is run and
 ```
-rosrun solve_maze my_solver_salinimli
+rosrun solve_maze my_solver_saline
 ```
-ve
+and
 ```
 rosrun solve_maze my_mapper
 ```
-kodları çalıştırıldığında robot labirenti tamamlaya çalışıp aşağıdaki gibi haritalandırmaya yapmaya başlayacaktır.
+the robot will try to complete the maze and start mapping as follows.
 
 ![odev1](./ciktilar/odev_1.png)
 
-Çözümümüzü ve haritalandırmamızı bir süre çalıştırdıktan sonra robot gezerken haritalandırma da yapacağı için aşağıdaki şekilde bir görüntü ve çıktılar elde edeceğiz. (Robotun tüm kararlarını ve çıktılarını konsoldan takip edebilirsiniz.)
+After running our solution and mapping for a while, we will get an image and outputs as follows, since the robot will also do mapping while traveling. (You can follow all the decisions and outputs of the robot from the console.)
 
 ![img1](./ciktilar/odev1_cozum.png)
 
-Bir süre sonra robotumuz sağ duvarı takip ederek labirenti tamamlayıp ortadaki hedef noktada kendini durduracak aşağıdaki şekilde bu pozisyonu görebiliriz.
+After a while, our robot will complete the maze by following the right wall and stop itself at the target point in the middle, we can see this position in the figure below.
 
 ![img2](./ciktilar/odev1_final2.png)
 
-Çıktıları ve son haritalandırmayı da takip ettiğimizde işlemin tamamlandığına dair çıktımızı ve final haritamızı görebiliyor olacağız.
+When we follow the outputs and the final mapping, we will be able to see our output and final map that the process is complete.
 
 ![img3](./ciktilar/odev1_final.png)
 
-Final haritamız ise tam olarak aşağıdaki gibi olacaktır.
+Our final map will be exactly as follows.
 
 ![img4](./ciktilar/odev1_final_harita.png)
 
-Ve son olarak çıktılarımızda da aşağıdaki çıktıyı gördüğümüzde robot gereken yere varmış demektir.
+And finally, when we see the following output in our outputs, the robot is where it needs to be.
 
 ![img5](./ciktilar/odev1_final_cmd.png)
 
-Bu şekilde wall following ile labirenti çözmüş ve mapping işlemi yapmış olduk.
+In this way, we solved the maze with wall following and mapping.
+
+Translated with DeepL.com (free version)
