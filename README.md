@@ -98,5 +98,3 @@ And finally, when we see the following output in our outputs, the robot is where
 ![img5](./ciktilar/odev1_final_cmd.png)
 
 In this way, we solved the maze with wall following and mapping.
-
-Translated with DeepL.com (free version)
