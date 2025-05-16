@@ -4,8 +4,6 @@
 In this assignment I used micromouse maze 4 and turtlebot3 waffle. We will initialize and use them.
 
 The assignment includes the following two packages and the solve_maze package developed by me.
-- `turtlebot3_simulations` 
-- `micromouse_maze`
 
 #### Installation
 
