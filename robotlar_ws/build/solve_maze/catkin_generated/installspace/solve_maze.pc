@@ -1,0 +1,8 @@
+prefix=/home/tugcan/robotlar_ws/install
+
+Name: solve_maze
+Description: Description of solve_maze
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

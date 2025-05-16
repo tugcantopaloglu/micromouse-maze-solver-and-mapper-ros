@@ -1,0 +1,8 @@
+prefix=/home/tugcan/robotlar_ws/install
+
+Name: micromouse_maze
+Description: Description of micromouse_maze
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
