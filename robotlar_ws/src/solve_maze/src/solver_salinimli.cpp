@@ -5,6 +5,7 @@
 #include <math.h>
 #include <vector>
 #include <algorithm>
+#include "scan_math.h"
 
 // bu kod ROS ile turtlebot3'un mouse maze labirentini cozmesini sagliyor. sag duvari takip ediyoruz. uzun sure calistirdiktan sonra sonuca ulasmayi basardim. hedefe ulasabiliyor. bazi yerlerde zorlaniyor ancak yine de cozmeyi basariyor. bazen koselerde sikisiyormus gibi gozukuyor. bunu cozmek icin time interval da ekledim, bu sekilde sikismiyor ancak koseleri yavas donuyor. bu kodu daha iyi hale getirmek icin bazi parametreleri degistirdim. bu parametreler robotun duvara olan mesafesini, toleransini ve kose durumunu kontrol ediyor. ayrica robotun odometrisini takip ediyoruz ve hedefe ulastiginda durmasini sagliyoruz. diger kodumdan farklı olan şey burada parelellik sorununu biraz daha çözdüm salınım yaparak duvara biraz daha uzaktan ilerleyebiliyor.
 ros::Publisher cmd_pub;
@@ -43,11 +44,7 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr &msg)
 
 double mesafeDuzenle(double mesafe)
 {
-    if (!std::isfinite(mesafe) || mesafe > max_sensor_mesafe)
-    {
-        return max_sensor_mesafe;
-    }
-    return mesafe;
+    return scan_math::wallReading(mesafe, max_sensor_mesafe);
 }
 
 void durumDegistir(Durum yeni_durum)
@@ -72,13 +69,16 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan)
         return;
     }
 
-    int num_ranges = scan->ranges.size();
-
-    int sag_idx = (int)((-M_PI / 2 - scan->angle_min) / scan->angle_increment);
-    int on_idx = (int)((0.0 - scan->angle_min) / scan->angle_increment);
-
-    sag_idx = std::max(0, std::min(sag_idx, num_ranges - 1));
-    on_idx = std::max(0, std::min(on_idx, num_ranges - 1));
+    std::size_t sag_idx, on_idx;
+    if (!scan_math::angleIndex(-M_PI / 2, scan->angle_min, scan->angle_increment,
+                              scan->ranges.size(), sag_idx) ||
+        !scan_math::angleIndex(0.0, scan->angle_min, scan->angle_increment,
+                              scan->ranges.size(), on_idx))
+    {
+        cmd_pub.publish(geometry_msgs::Twist());
+        ROS_WARN_THROTTLE(5, "Scan geometry does not provide the required directions; stopping.");
+        return;
+    }
 
     double on_mesafe = mesafeDuzenle(scan->ranges[on_idx]);
     double sag_mesafe = mesafeDuzenle(scan->ranges[sag_idx]);

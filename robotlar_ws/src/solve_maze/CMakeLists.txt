@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(solve_maze)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -218,3 +218,8 @@ target_link_libraries(my_mapper ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+if(CATKIN_ENABLE_TESTING)
+  add_executable(scan_math_test test/scan_math_test.cpp)
+  add_test(NAME scan_math_test COMMAND scan_math_test)
+endif()
