@@ -4,6 +4,7 @@
 #include <tf/transform_listener.h>
 #include <opencv2/opencv.hpp>
 #include <cmath>
+#include "scan_math.h"
 
 const int MAP_WIDTH = 600;
 const int MAP_HEIGHT = 600;
@@ -17,13 +18,15 @@ tf::TransformListener *listener_ptr = nullptr;
 // /scan mesajını işleyen ve lazerleri kullanan callback
 void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
 {
+    if (!scan_math::validGeometry(scan_msg->angle_min, scan_msg->angle_increment, scan_msg->ranges.size()))
+        return;
     for (size_t i = 0; i < scan_msg->ranges.size(); ++i)
     {
         float range = scan_msg->ranges[i];
-        if (range < scan_msg->range_min || range > scan_msg->range_max)
+        if (!std::isfinite(range) || range < scan_msg->range_min || range > scan_msg->range_max)
             continue;
 
-        float angle = scan_msg->angle_min + i * scan_msg->angle_increment;
+        double angle = scan_msg->angle_min + i * static_cast<double>(scan_msg->angle_increment);
         double x_base = range * cos(angle);
         double y_base = range * sin(angle);
 
@@ -48,10 +51,8 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
         double x_odom = point_in_odom.getX();
         double y_odom = point_in_odom.getY();
 
-        int pixel_x = static_cast<int>(MAP_WIDTH / 2 + x_odom * RESOLUTION);
-        int pixel_y = static_cast<int>(MAP_HEIGHT / 2 - y_odom * RESOLUTION);
-
-        if (pixel_x >= 0 && pixel_x < MAP_WIDTH && pixel_y >= 0 && pixel_y < MAP_HEIGHT)
+        int pixel_x, pixel_y;
+        if (scan_math::mapPixel(x_odom, y_odom, RESOLUTION, MAP_WIDTH, MAP_HEIGHT, pixel_x, pixel_y))
         {
             cv::circle(map_image, cv::Point(pixel_x, pixel_y), 1, POINT_COLOR, -1);
         }

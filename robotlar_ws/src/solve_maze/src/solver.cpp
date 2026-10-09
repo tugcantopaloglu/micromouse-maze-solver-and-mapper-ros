@@ -5,6 +5,8 @@
 #include <math.h>
 #include <vector>
 #include <algorithm>
+#include <limits>
+#include "scan_math.h"
 
 // bu kod ROS ile turtlebot3'un mouse maze labirentini cozmesini sagliyor. sag duvari takip ediyoruz. uzun sure calistirdiktan sonra sonuca ulasmayi basardim. hedefe ulasabiliyor. bazi yerlerde zorlaniyor ancak yine de cozmeyi basariyor. ornegin duvara cok yakin gidiyor ve bazen koselerde sikisiyormus gibi gozukuyor. bunu cozmek icin time interval da ekledim, bu sekilde sikismiyor ancak koseleri yavas donuyor. bu kodu daha iyi hale getirmek icin bazi parametreleri degistirdim. bu parametreler robotun duvara olan mesafesini, toleransini ve kose durumunu kontrol ediyor. ayrica robotun odometrisini takip ediyoruz ve hedefe ulastiginda durmasini sagliyoruz.
 ros::Publisher cmd_pub;
@@ -47,11 +49,7 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr &msg)
 
 double sanitizeReading(double reading)
 {
-    if (!std::isfinite(reading) || reading > max_valid_range)
-    {
-        return max_valid_range;
-    }
-    return reading;
+    return scan_math::wallReading(reading, max_valid_range);
 }
 
 bool detectCorner(const std::vector<double> &distances, double current_dist, bool &is_right_corner)
@@ -126,28 +124,28 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr &scan)
         return;
     }
 
-    int num_ranges = scan->ranges.size();
-
-    int right_idx = (int)((-M_PI / 2 - scan->angle_min) / scan->angle_increment);
-    int front_idx = (int)((0.0 - scan->angle_min) / scan->angle_increment);
-    int front_right_idx = (int)((-M_PI / 4 - scan->angle_min) / scan->angle_increment);
-    int front_left_idx = (int)((M_PI / 4 - scan->angle_min) / scan->angle_increment);
-    int left_idx = (int)((M_PI / 2 - scan->angle_min) / scan->angle_increment);
-    int back_right_idx = (int)((-3 * M_PI / 4 - scan->angle_min) / scan->angle_increment);
-
-    right_idx = std::max(0, std::min(right_idx, num_ranges - 1));
-    front_idx = std::max(0, std::min(front_idx, num_ranges - 1));
-    front_right_idx = std::max(0, std::min(front_right_idx, num_ranges - 1));
-    front_left_idx = std::max(0, std::min(front_left_idx, num_ranges - 1));
-    left_idx = std::max(0, std::min(left_idx, num_ranges - 1));
-    back_right_idx = std::max(0, std::min(back_right_idx, num_ranges - 1));
+    std::size_t indices[4];
+    const double angles[4] = {-M_PI / 2, 0.0, -M_PI / 4, M_PI / 4};
+    bool valid_scan = scan->ranges.size() <= static_cast<std::size_t>(std::numeric_limits<int>::max() - 2);
+    for (int i = 0; i < 4 && valid_scan; ++i)
+        valid_scan = scan_math::angleIndex(angles[i], scan->angle_min, scan->angle_increment,
+                                          scan->ranges.size(), indices[i]);
+    if (!valid_scan)
+    {
+        cmd_pub.publish(geometry_msgs::Twist());
+        ROS_WARN_THROTTLE(5, "Scan geometry does not provide the required directions; stopping.");
+        return;
+    }
+    const int num_ranges = static_cast<int>(scan->ranges.size());
+    const int right_idx = static_cast<int>(indices[0]);
+    const int front_idx = static_cast<int>(indices[1]);
+    const int front_right_idx = static_cast<int>(indices[2]);
+    const int front_left_idx = static_cast<int>(indices[3]);
 
     double front_dist = sanitizeReading(scan->ranges[front_idx]);
     double front_right_dist = sanitizeReading(scan->ranges[front_right_idx]);
     double front_left_dist = sanitizeReading(scan->ranges[front_left_idx]);
     double right_dist = sanitizeReading(scan->ranges[right_idx]);
-    double left_dist = sanitizeReading(scan->ranges[left_idx]);
-    double back_right_dist = sanitizeReading(scan->ranges[back_right_idx]);
 
     int window_size = 5;
     int half_window = window_size / 2;

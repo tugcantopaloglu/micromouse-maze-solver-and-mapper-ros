@@ -1,100 +1,73 @@
-# Turtle Bot Micromouse Maze Solver with ROS and C++
+# TurtleBot3 Micromouse Maze Solver and Mapper
 
-## Installation and Initialization of the Environment
-In this assignment I used micromouse maze 4 and turtlebot3 waffle. We will initialize and use them.
+ROS1 Noetic C++ coursework for right-wall following and plotting laser returns in a micromouse maze. The original experiment used maze 4 and the TurtleBot3 waffle model.
 
-The assignment includes the following two packages and the solve_maze package developed by me.
+The maintained source is `robotlar_ws/src/solve_maze`. The tracked `build` and `devel` trees are snapshots from the original Linux workspace, with machine-specific paths and binaries. Build the package in a fresh workspace instead of sourcing those snapshots. The tracked workspace `src/CMakeLists.txt` contains the original catkin path rather than a portable top-level build file.
 
-#### Installation
+## Requirements and build
 
-```
-git clone https://gitlab.com/blm6191_2425b_tai/members/24501118/hw1.git
-```
+Use a Linux ROS1 Noetic environment with catkin, `roscpp`, `sensor_msgs`, `nav_msgs`, `geometry_msgs`, `tf`, and OpenCV 4. Gazebo, TurtleBot3 and the course's `micromouse_maze` package are separate simulation dependencies; their sources are not included in this checkout. The original assignment repository is [hw1 on GitLab](https://gitlab.com/blm6191_2425b_tai/members/24501118/hw1).
 
-### Initializing the Environment
-We go to the main folder.
-
-```
-cd ./hw1/robots_ws
-```
-
-We use our code to build the code just in case. And we choose waffle as the model.
-
-```
-export TURTLEBOT3_MODEL=waffle
-catkin_make clean
+```bash
+source /opt/ros/noetic/setup.bash
+git clone https://github.com/tugcantopaloglu/micromouse-maze-solver-and-mapper-ros.git
+mkdir -p ~/micromouse_ws/src
+cp -R micromouse-maze-solver-and-mapper-ros/robotlar_ws/src/solve_maze ~/micromouse_ws/src/
+cd ~/micromouse_ws
+rosdep install --from-paths src --ignore-src -r -y
 catkin_make
 source devel/setup.bash
+export TURTLEBOT3_MODEL=waffle
 ```
 
-Then we start our environment.
+Ensure the simulation packages are installed in this workspace or in a sourced underlay. Run the simulator as a regular desktop user:
 
-```
+```bash
 roslaunch micromouse_maze micromouse_maze4.launch
 ```
 
-When we do this, we are waiting for gazebo and Rviz to open. (If these operations are done with root, there may be problems because Gazebo GUI does not work very well with root, it is healthier to do it with a normal user)
+## Run
 
-## Observing the Solution and Outputs
+In separately sourced terminals, start one wall-following solver and optionally the mapper:
 
-### Observing the Solution
-
-All the codes I have solved are located in the following location, in this location you will find 3 solutions. The first one is my first iteration, my_solver (completes the maze by going quite close to the wall)
-
-```
-hw1/robots_ws/src/solve_maze
-```
-
-The second is my_solver_oscillating, the version I developed in the first iteration, which completes the maze by going further away from the wall (it follows the wall by making an oscillating "S" shape).
-
-And finally my_mapper is the code that maps the area our robot travels. You can run all three codes in the following ways and see how they work.
-
-First solution
-```
+```bash
 rosrun solve_maze my_solver
 ```
 
-Second solution
-```
+Alternatively, use the original oscillating controller:
+
+```bash
 rosrun solve_maze my_solver_salinimli
 ```
 
-Map builder
-```
+Display mapped laser returns:
+
+```bash
 rosrun solve_maze my_mapper
 ```
 
-#### Outputs
-After the maze is run and
+Both solvers subscribe to `/scan` and `/odom` and publish `/cmd_vel`. Run only one solver at a time. They stop when odometry enters the original goal region `abs(x) < 1` and `abs(y) < 1`; this assumes the simulator's odometry origin matches that goal. Angular indexing supports full scans starting at zero or at a negative angle. Empty scans, invalid angular metadata, and scans missing a required direction produce a stop command. NaN and negative wall readings are treated as blocked, while positive infinity is capped at the configured maximum range.
+
+The mapper transforms finite laser returns from the scan frame into `odom` and displays a 600 by 600 OpenCV image at 20 pixels per meter. It requires TF and a graphical display. It draws observed endpoints; it does not publish a ROS occupancy grid or implement SLAM. Returns outside the image are ignored.
+
+## Regression checks and limits
+
+The standalone C++ test covers scan angle wrapping, missing directions, malformed scan geometry, invalid readings, and safe image-coordinate conversion:
+
+```bash
+g++ -std=c++11 -Wall -Wextra -Werror robotlar_ws/src/solve_maze/test/scan_math_test.cpp -o /tmp/scan_math_test
+/tmp/scan_math_test
 ```
-rosrun solve_maze my_solver_saline
-```
-and
-```
-rosrun solve_maze my_mapper
-```
-the robot will try to complete the maze and start mapping as follows.
 
-![odev1](./ciktilar/odev_1.png)
+In a built catkin workspace, run `ctest --test-dir build -R scan_math_test --output-on-failure`. The isolated test does not validate ROS callbacks, TF, OpenCV display, Gazebo navigation or real hardware. Full acceptance requires the original maze world and a ROS/Gazebo run. ROS1 Noetic is the preserved architecture.
 
-After running our solution and mapping for a while, we will get an image and outputs as follows, since the robot will also do mapping while traveling. (You can follow all the decisions and outputs of the robot from the console.)
+## Original assignment screenshots
 
-![img1](./ciktilar/odev1_cozum.png)
+These images record the original experiment and are not results from the isolated regression test.
 
-After a while, our robot will complete the maze by following the right wall and stop itself at the target point in the middle, we can see this position in the figure below.
-
-![img2](./ciktilar/odev1_final2.png)
-
-When we follow the outputs and the final mapping, we will be able to see our output and final map that the process is complete.
-
-![img3](./ciktilar/odev1_final.png)
-
-Our final map will be exactly as follows.
-
-![img4](./ciktilar/odev1_final_harita.png)
-
-And finally, when we see the following output in our outputs, the robot is where it needs to be.
-
-![img5](./ciktilar/odev1_final_cmd.png)
-
-In this way, we solved the maze with wall following and mapping.
+![Wall following and mapping](ciktilar/odev_1.png)
+![Maze progress](ciktilar/odev1_cozum.png)
+![Goal position](ciktilar/odev1_final2.png)
+![Final display](ciktilar/odev1_final.png)
+![Mapped endpoints](ciktilar/odev1_final_harita.png)
+![Original goal output](ciktilar/odev1_final_cmd.png)
